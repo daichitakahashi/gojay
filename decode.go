@@ -313,6 +313,8 @@ func (dec *Decoder) Decode(v interface{}) error {
 		err = dec.decodeBoolNull(vt)
 	case UnmarshalerJSONObject:
 		_, err = dec.decodeObject(vt)
+	case UnmarshalerJSONArrayable:
+		err = dec.decodeArrayable(vt, false)
 	case UnmarshalerJSONArray:
 		_, err = dec.decodeArray(vt)
 	case *EmbeddedJSON:
