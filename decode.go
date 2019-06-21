@@ -194,6 +194,12 @@ func Unmarshal(data []byte, v interface{}) error {
 		dec.length = len(data)
 		dec.data = data
 		err = dec.decodeBoolNull(vt)
+	case UnmarshalerJSONVariable:
+		dec = borrowDecoder(nil, 0)
+		dec.length = len(data)
+		dec.data = make([]byte, len(data))
+		copy(dec.data, data)
+		err = dec.decodeVariable(vt)
 	case UnmarshalerJSONObject:
 		dec = borrowDecoder(nil, 0)
 		dec.length = len(data)
@@ -313,6 +319,8 @@ func (dec *Decoder) Decode(v interface{}) error {
 		err = dec.decodeBoolNull(vt)
 	case UnmarshalerJSONObject:
 		_, err = dec.decodeObject(vt)
+	case UnmarshalerJSONVariable:
+		err = dec.decodeVariable(vt)
 	case UnmarshalerJSONArrayable:
 		err = dec.decodeArrayable(vt, false)
 	case UnmarshalerJSONArray:

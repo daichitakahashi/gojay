@@ -1,5 +1,66 @@
 package gojay
 
+// UnmarshalerJSONVariable is
+type UnmarshalerJSONVariable interface {
+	UnmarshalJSONVariable(*Decoder, byte) error
+}
+
+// DecodeVariable is
+func (dec *Decoder) DecodeVariable(v UnmarshalerJSONVariable) error {
+	if dec.isPooled == 1 {
+		panic(InvalidUsagePooledDecoderError("Invalid usage of pooled decoder"))
+	}
+	return dec.decodeVariable(v)
+}
+
+func (dec *Decoder) decodeVariable(v UnmarshalerJSONVariable) error {
+	for ; dec.cursor < dec.length || dec.read(); dec.cursor++ {
+		switch dec.data[dec.cursor] {
+		case ' ', '\n', '\t', '\r', ',':
+			continue
+		case 'n':
+			// is null
+			dec.cursor++
+			err := dec.assertNull()
+			if err != nil {
+				return err
+			}
+			return nil
+		case '{', '[', '"', 'f', 't', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-':
+			// dec.cursor++
+			err := v.UnmarshalJSONVariable(dec, dec.data[dec.cursor])
+			if err != nil {
+				dec.err = err
+				return dec.err
+			}
+			return nil
+		default:
+			return dec.raiseInvalidJSONErr(dec.cursor)
+		}
+	}
+	return dec.raiseInvalidJSONErr(dec.cursor)
+}
+
+// DecodeVariableFunc is a func type implementing UnmarshalerJSONVariable.
+type DecodeVariableFunc func(*Decoder, byte) error
+
+// UnmarshalJSONVariable implements UnmarshalerJSONVariable.
+func (f DecodeVariableFunc) UnmarshalJSONVariable(dec *Decoder, c byte) error {
+	return f(dec, c)
+}
+
+// Add Values functions
+
+// AddVariable decodes the JSON value within an object or an array to a UnmarshalerJSONVariable.
+func (dec *Decoder) AddVariable(v UnmarshalerJSONVariable) error {
+	return dec.Variable(v)
+}
+
+// Variable decodes the JSON value within an object or an array to a UnmarshalerJSONVariable.
+func (dec *Decoder) Variable(v UnmarshalerJSONVariable) error {
+	return dec.decodeVariable(v)
+}
+
 // UnmarshalerJSONArrayable is
 type UnmarshalerJSONArrayable interface {
 	UnmarshalerJSONArray
